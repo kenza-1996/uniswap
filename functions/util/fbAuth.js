@@ -1,37 +1,42 @@
-const { admin, db } = require('./admin');
+const{admin,db}=require('./admin');
 
-module.exports = (req, res, next) => {
-  let idToken;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer ')
-  ) {
-    idToken = req.headers.authorization.split('Bearer ')[1];
-  } else {
-    console.error('No token found');
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
+module.exports  = (req, res, next) => {
+    let idToken;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        idToken = req.headers.authorization.split('Bearer ')[1];
+    }
+    else {
+        console.error('no token found');
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    admin.auth().verifyIdToken(idToken)
+        .then((decodedToken )=> {
+            req.user = decodedToken;
+            console.log(decodedToken);
+            return db.collection('users')
+                .where('email', "==", req.user.email)
+                .limit(1)
+                .get()
+        })
+        .then((data) => {
+            req.user.email = data.docs[0].data().email;
+            req.user.nom = data.docs[0].data().nom;
+            req.user.prenom = data.docs[0].data().prenom;
+            req.user.imageUrl = data.docs[0].data().imageUrl;
+            req.user.bio = data.docs[0].data().bio;
+            req.user.universite = data.docs[0].data().universite;
+            req.user.faculte = data.docs[0].data().faculte;
+            req.user.departement = data.docs[0].data().dpartement;
+            req.user.adresse = data.docs[0].data().adresse;
+            
 
-  admin
-    .auth()
-    .verifyIdToken(idToken)
-    .then((decodedToken) => {
-      req.user = decodedToken;
-      return db
-        .collection('etudiants','enseignants')
-        .where('email', '==', req.user.email)
-        .limit(1)
-        .get();
-    })
-    .then((data) => {
-      req.user.nom = data.docs[0].data().nom;
-      req.user.prenom = data.docs[0].data().prenom;
-      req.user.email = data.docs[0].data().email;
-      req.user.imageUrl = data.docs[0].data().imageUrl;
-      return next();
-    })
-    .catch((err) => {
-      console.error('Error while verifying token ', err);
-      return res.status(403).json(err);
-    });
-};
+            
+            return next();
+        })
+        .catch((err) => {
+            console.error('error while verifying token', err);
+            return res.status(403).json(err);
+        })
+
+
+}
