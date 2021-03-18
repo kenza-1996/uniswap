@@ -186,4 +186,102 @@ exports.login=(req, res) => {
                 });
                 busboy.end(req.rawBody);
               };
+              exports.SendFollowRequest = (req, res) => {
+                let FollowRequest = {
+                  owner: req.body.owner,
+                  AccountName: req.body.AccountName,
+                  status: "pending",
+                  date: new Date().toISOString(),
+                };
+                
+                
+                db.collection("followRequest")
+                  .where("owner", "==", FollowRequest.owner && "AccountName", "==", FollowRequest.AccountName  )
+                  .get()
+                  .then((doc) => {
+                    if (doc.size > 0) {
+                      res.status(501).json({ error: "request already sent" });
+                    } else {
+                      db.collection("followRequest")
+                        .add(FollowRequest)
+                        .then((doc) => {
+                          console.log(doc.id);
+                          return res.status(200).json({ success: " following request sent" });
+                        })
+                        .catch((e) => {
+                          console.error(e);
+                          return res.status(500).json({ error: "something went wrong" });
+                        });
+                    }
+                  
+                  
+                  })
+                
+                  .catch((e) => {
+                    console.error(e);
+                    return res.status(500).json({ error: "something went wrong" });
+                  });
+              };
               
+              exports.acceptFollowRequest = (req, res) => {
+                const request = {
+                  requestId: req.body.requestId,
+                  owner: req.body.owner,
+                  AccountName: req.body.AccountName,
+                };
+                db.collection("followRequest")
+                  .doc(request.requestId)
+                  .get()
+                  .then((doc) => {
+                    if (doc.exists) {
+                      db.collection("followRequest")
+                        .doc(request.requestId)
+                        .delete()
+                        .then(() => {
+                          console.log("yessyess");
+                          db.collection("follows").add({
+                            follow: request.owner,
+                            
+                            followed: request.AccountName,
+                            dateFollow: new Date().toISOString(),
+                          });
+                          res.status(200).json({ accepted: "invitation accepted " });
+                        })
+                        .catch((e) => {
+                          res.status(500).json({ error: "something wrong" });
+                        });
+                    } else {
+                      res.status(501).json({ error: "request doesnt exist" });
+                    }
+                  })
+                  .catch((e) => {
+                    res.status(500).json({ error: "something wrong 1" });
+                  });
+                
+              };
+              exports.getAllAmis = (req, res) => {
+                db.collection('follows')
+                  .orderBy('dateFollow', 'desc')
+                  .get()
+                  .then((data) => {
+                    let follows = [];
+                    data.forEach((doc) => {
+                      follows.push({
+                        
+                  ///// followed: doc.id,
+                      followed: doc.data().followed,
+                    
+                        //nom: doc.data().nom,
+                        //createdAt: doc.data().createdAt,
+                        //commentCount: doc.data().commentCount,
+                        //likeCount: doc.data().likeCount,
+                      //  userImage: doc.data().userImage
+                      });
+                    });
+                    return res.json(follows);
+                  })
+                  .catch((err) => {
+                    console.error(err);
+                    res.status(500).json({ error: err.code });
+                  });
+              };

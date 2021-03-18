@@ -28,9 +28,6 @@ module.exports  = (req, res, next) => {
             req.user.faculte = data.docs[0].data().faculte;
             req.user.departement = data.docs[0].data().dpartement;
             req.user.adresse = data.docs[0].data().adresse;
-            
-
-            
             return next();
         })
         .catch((err) => {
