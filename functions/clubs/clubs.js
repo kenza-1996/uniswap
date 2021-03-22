@@ -3,7 +3,7 @@ const { db, admin } = require('../util/admin');
 const FieldValue = admin.firestore.FieldValue;
            
 
-
+//cree un groupe
 exports.postGroupes =(async(req, res) => {
   try {
     const{email, nom, groupName} = req.body;
@@ -31,6 +31,7 @@ exports.postGroupes =(async(req, res) => {
     
   }
 });
+//ajouter des membres
 exports.postMembres = (req, res) => {
                 
               
@@ -59,6 +60,7 @@ exports.postMembres = (req, res) => {
         res.status(500).json({ error: err.code });
       });
 }
+//recuperer un groupe
 exports.getGroup =  (async (req , res) => {
     try{
         let document = db.collection('Groupes').doc(req.params.GroupId);
@@ -76,6 +78,7 @@ exports.getGroup =  (async (req , res) => {
         console.error(err);
 }
 });
+//modifier le nom de groupe
 exports.putGroup = (async(req, res)=>{
   try {
     const document = db.collection('Groupes').doc(req.params.GroupId);
@@ -89,6 +92,7 @@ exports.putGroup = (async(req, res)=>{
   }
  
 });
+//supprimer nom de groupe
 exports.deleteGroup = (async(req, res) => {
   
       try {
@@ -101,6 +105,7 @@ exports.deleteGroup = (async(req, res) => {
       }
       
   });
+  //poster une publication dans un groupe
   exports.postPublication = (req,res) => {
     if (req.body.body.trim() === '') {
         return res.status(400).json({ body: 'Body must not be empty' });
@@ -136,6 +141,7 @@ exports.deleteGroup = (async(req, res) => {
 
         });
 }
+//recuperer tout les publication dans un groupe 
 exports.getAllPublications = (req, res) => {
   db.collection('Groupes').doc(req.params.GroupId).collection('publications')
     .orderBy('createdAt', 'desc')
@@ -160,6 +166,7 @@ exports.getAllPublications = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
+//recuperer une publication 
 exports.getPublication = (req, res) => {
     let publicationData = {};
     db.doc(`/Groupes/${req.params.GroupId}/publications/${req.params.publicationId}`)
@@ -188,6 +195,7 @@ exports.getPublication = (req, res) => {
         res.status(500).json({ error: err.code });
       });
 };
+//commenter une publication dans un groupe
 exports.commentOnPublication = (req, res) => {
   if (req.body.body.trim() === '')
     return res.status(400).json({ comment: 'Must not be empty' });
@@ -223,6 +231,7 @@ exports.commentOnPublication = (req, res) => {
       res.status(500).json({ error: 'Something went wrong' });
     });
 };
+//likes des publication
 exports.likePublication = (req, res) => {
   const likeDocument = db
     .collection('Groupes').doc(req.params.GroupId).collection('like groupe')
@@ -269,6 +278,7 @@ exports.likePublication = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
+//unlikes
 exports.unlikePublication = (req, res) => {
   const likeDocument = db
     .collection('Groupes').doc(req.params.GroupId).collection('like groupe')
@@ -312,6 +322,7 @@ exports.unlikePublication = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 }; 
+//supprimmer une publication
 exports.deletePublication = (req, res) => {
   const document = db.doc(`/Groupes/${req.params.GroupId}/publications/${req.params.publicationId}`);
   document
