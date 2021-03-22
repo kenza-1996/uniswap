@@ -4,23 +4,23 @@ const FieldValue = admin.firestore.FieldValue;
            
 
 
-exports.postGroup = (async(req, res) => {
+exports.postGroupes =(async(req, res) => {
   try {
-    const{email, username, groupName} = req.body;
-    if(!email || !username || !groupName) return res.status(422).send();
+    const{email, nom, groupName} = req.body;
+    if(!email || !nom || !groupName) return res.status(422).send();
     const groupRef = await db.collection("Groupes").doc();
 
     const group =await groupRef.set({
       id: groupRef.id,
       name: groupName,
       email,
-      membres: [{ id: email, name: username, isAdmin: true }],
+      membres: [{ id: email, name: nom, isAdmin: true }],
     });
     const response = await db.collection("users").doc(email)
     .update({
       groups: admin.firestore.FieldValue.arrayUnion({
         id: email,
-        name: username,
+        name: nom,
       }),
     });
     res.send(group);
@@ -31,38 +31,34 @@ exports.postGroup = (async(req, res) => {
     
   }
 });
-  //if (req.body.clubName.trim() === '') {
-    //  return res.status(400).json({ clubName: 'Body must not be empty' });
-   // }
-  /*const newGroup = {
-      nomGroup: req.body.nomGroup,
-      email: req.user.email,
-      membres: req.body.membres,
-      categorie: req.body.categorie,
-      createdAt: admin.firestore.Timestamp.fromDate(new Date()),
-      membresCount: 0,
-      
-  };
-  db.doc(`/Groupes/${newGroup.nomGroup}`)
-  .get()
-  .then((doc) => {
-    if (doc.exists) {
-      console.log(newGroup.nomGroup);
-      return res.status(400).json({ nomGroup: 'ce groupe existe deja' });
-    }else{
-        db.collection('Groupes').doc().set(newGroup);
-        res.json({message : `document created successfully`})
-      }
-
-  })
+exports.postMembres = (req, res) => {
+                
+              
+    const membreDocument = db.doc(`/Groupes/${req.body.GroupId}`);
+   
+    let membreData ;
   
-  .catch((err) => {
-      res.status(500).json({ error: `somthing went wrong` });
-      console.error(err);
+  
+    membreDocument
+      .get()
+      .then((doc) => {
+        if (doc.exists) {
+          membreData = doc.data();
+          membreData.membres.push(req.body.email && req.body.username);
+          return membreDocument.update({ membres: membreData.membres });
+          
+          
+          
+        }  })
+       
+          
 
-})
-};*/
-
+  
+      .catch((err) => {
+        console.error(err);
+        res.status(500).json({ error: err.code });
+      });
+}
 exports.getGroup =  (async (req , res) => {
     try{
         let document = db.collection('Groupes').doc(req.params.GroupId);
@@ -129,7 +125,7 @@ exports.deleteGroup = (async(req, res) => {
         
       })
       .then(() => {
-        return db.collection('publications').add(newPublication);
+        return db.collection("Groupes").doc(req.params.GroupId).collection('publications').add(newPublication);
       })
       .then(() => {
         res.json(newPublication);
@@ -141,7 +137,7 @@ exports.deleteGroup = (async(req, res) => {
         });
 }
 exports.getAllPublications = (req, res) => {
-  db.collection('publications')
+  db.collection('Groupes').doc(req.params.GroupId).collection('publications')
     .orderBy('createdAt', 'desc')
     .get()
     .then((data) => {
@@ -166,7 +162,7 @@ exports.getAllPublications = (req, res) => {
 };
 exports.getPublication = (req, res) => {
     let publicationData = {};
-    db.doc(`/publications/${req.params.publicationId}`)
+    db.doc(`/Groupes/${req.params.GroupId}/publications/${req.params.publicationId}`)
       .get()
       .then((doc) => {
         if (!doc.exists) {
@@ -175,7 +171,7 @@ exports.getPublication = (req, res) => {
         publicationData = doc.data();
         publicationData.publicationId = doc.id;
         return db
-           .collection('commentaire')
+           .collection('Groupes').doc(req.params.GroupId).collection('commentaire')
           .orderBy('createdAt', 'desc')
           .where('publicationId', '==', req.params.publicationId)
           .get();
@@ -208,7 +204,7 @@ exports.commentOnPublication = (req, res) => {
   };
   console.log(newCommentaire);
 
-  db.doc(`/publications/${req.params.publicationId}`)
+  db.doc(`/Groupes/${req.params.GroupId}/publications/${req.params.publicationId}`)
     .get()
     .then((doc) => {
       if (!doc.exists) {
@@ -217,7 +213,7 @@ exports.commentOnPublication = (req, res) => {
       return doc.ref.update({ commentCount: doc.data().commentCount + 1 });
     })
     .then(() => {
-      return db.collection('commentaire').add(newCommentaire);
+      return db.collection('Groupes').doc(req.params.GroupId).collection('commentaire').add(newCommentaire);
     })
     .then(() => {
       res.json(newCommentaire);
@@ -229,12 +225,12 @@ exports.commentOnPublication = (req, res) => {
 };
 exports.likePublication = (req, res) => {
   const likeDocument = db
-    .collection('like groupe')
+    .collection('Groupes').doc(req.params.GroupId).collection('like groupe')
     .where('email', '==', req.user.email)
     .where('publicationId', '==', req.params.publicationId)
     .limit(1);
 
-  const publicationDocument = db.doc(`/publications/${req.params.publicationId}`);
+  const publicationDocument = db.doc(`/Groupes/${req.params.GroupId}/publications/${req.params.publicationId}`);
 
   let publicationData;
 
@@ -252,7 +248,7 @@ exports.likePublication = (req, res) => {
     .then((data) => {
       if (data.empty) {
         return db
-          .collection('like groupe')
+          .collection('Groupes').doc(req.params.GroupId).collection('like groupe')
           .add({
             publicationId: req.params.publicationId,
             email: req.user.email
@@ -275,12 +271,12 @@ exports.likePublication = (req, res) => {
 };
 exports.unlikePublication = (req, res) => {
   const likeDocument = db
-    .collection('like groupe')
+    .collection('Groupes').doc(req.params.GroupId).collection('like groupe')
     .where('email', '==', req.user.email)
     .where('publicationId', '==', req.params.publicationId)
     .limit(1);
 
-  const publicationDocument = db.doc(`/publications/${req.params.publicationId}`);
+  const publicationDocument = db.doc(`/Groupes/${req.params.GroupId}/publications/${req.params.publicationId}`);
 
   let publicationData;
 
@@ -300,7 +296,7 @@ exports.unlikePublication = (req, res) => {
         return res.status(400).json({ error: 'Scream not liked' });
       } else {
         return db
-          .doc(`/like groupe/${data.docs[0].id}`)
+          .doc(`/Groupes/${req.params.GroupId}/like groupe/${data.docs[0].id}`)
           .delete()
           .then(() => {
             publicationData.likeCount--;
@@ -317,7 +313,7 @@ exports.unlikePublication = (req, res) => {
     });
 }; 
 exports.deletePublication = (req, res) => {
-  const document = db.doc(`/publications/${req.params.publicationId}`);
+  const document = db.doc(`/Groupes/${req.params.GroupId}/publications/${req.params.publicationId}`);
   document
     .get()
     .then((doc) => {
